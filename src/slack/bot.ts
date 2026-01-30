@@ -1,6 +1,6 @@
 import { App, LogLevel } from "@slack/bolt";
 import * as dotenv from "dotenv";
-import { runAgent } from "../ai/agent";
+import { runAgent, clearConversation } from "../ai/agent";
 
 dotenv.config();
 
@@ -53,8 +53,16 @@ app.event("app_mention", async ({ event, say }) => {
         "무엇이든 말씀해주세요! 예시:\n" +
         '• "현재 폴더 파일 보여줘"\n' +
         '• "구글 열어줘"\n' +
-        '• "깃허브 스크린샷 찍어줘"',
+        '• "깃허브 스크린샷 찍어줘"\n' +
+        '• "초기화" - 대화 기록 초기화',
     );
+    return;
+  }
+
+  // 대화 초기화 처리
+  if (userMessage === "초기화" || userMessage === "리셋") {
+    clearConversation(event.channel);
+    await say("🔄 대화 기록이 초기화되었습니다. 새로운 대화를 시작하세요!");
     return;
   }
 
@@ -62,8 +70,8 @@ app.event("app_mention", async ({ event, say }) => {
   await say(`🤔 "${userMessage}" 작업 중...`);
 
   try {
-    // AI 에이전트 실행
-    const response = await runAgent(userMessage);
+    // AI 에이전트 실행 (채널 ID를 conversationId로 전달)
+    const response = await runAgent(userMessage, event.channel);
     await say(response);
   } catch (error: any) {
     console.error("Agent error:", error);
@@ -89,10 +97,18 @@ app.event("message", async ({ event, say }) => {
 
   if (!userMessage) return;
 
+  // 대화 초기화 처리
+  if (userMessage === "초기화" || userMessage === "리셋") {
+    clearConversation(event.channel);
+    await say("🔄 대화 기록이 초기화되었습니다. 새로운 대화를 시작하세요!");
+    return;
+  }
+
   await say(`🤔 처리 중...`);
 
   try {
-    const response = await runAgent(userMessage);
+    // AI 에이전트 실행 (채널 ID를 conversationId로 전달)
+    const response = await runAgent(userMessage, event.channel);
     await say(response);
   } catch (error: any) {
     console.error("Agent error:", error);

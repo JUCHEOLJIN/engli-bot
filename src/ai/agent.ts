@@ -18,6 +18,27 @@ interface ToolResult {
   output: string;
 }
 
+// 대화 컨텍스트 저장소 (채널/DM별)
+const conversations = new Map<string, Anthropic.MessageParam[]>();
+const MAX_MESSAGES = 20; // 최근 20개 메시지만 유지
+
+// 대화 초기화
+export function clearConversation(conversationId: string): void {
+  conversations.delete(conversationId);
+}
+
+// 메시지 히스토리 가져오기
+function getMessages(conversationId: string): Anthropic.MessageParam[] {
+  return conversations.get(conversationId) || [];
+}
+
+// 메시지 히스토리 저장 (최대 개수 제한)
+function saveMessages(conversationId: string, messages: Anthropic.MessageParam[]): void {
+  // 최근 MAX_MESSAGES개만 유지
+  const trimmed = messages.slice(-MAX_MESSAGES);
+  conversations.set(conversationId, trimmed);
+}
+
 // 도구 정의
 const tools: Anthropic.Tool[] = [
   {
@@ -206,8 +227,13 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-export async function runAgent(userMessage: string): Promise<string> {
+export async function runAgent(userMessage: string, conversationId: string): Promise<string> {
+  // 기존 대화 히스토리 가져오기
+  const history = getMessages(conversationId);
+
+  // 새 사용자 메시지 추가
   const messages: Anthropic.MessageParam[] = [
+    ...history,
     {
       role: "user",
       content: userMessage,
@@ -235,7 +261,9 @@ Slack URL을 받으면:
 → channel: "C07ABC123", ts: "1737012345.678901"
 
 한국어로 친절하게 응답하세요.
-도구를 사용한 후에는 결과를 요약해서 알려주세요.`;
+도구를 사용한 후에는 결과를 요약해서 알려주세요.
+
+이전 대화 내용을 기억하고 있으니, 사용자가 "아까 그 파일", "방금 열었던 페이지" 등으로 언급하면 맥락을 파악해서 처리하세요.`;
 
   let response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
@@ -282,6 +310,15 @@ Slack URL을 받으면:
   const textBlock = response.content.find(
     (block): block is Anthropic.TextBlock => block.type === "text",
   );
+
+  // 최종 assistant 응답 추가
+  messages.push({
+    role: "assistant",
+    content: response.content,
+  });
+
+  // 대화 히스토리 저장
+  saveMessages(conversationId, messages);
 
   return textBlock?.text || "작업을 완료했습니다.";
 }
