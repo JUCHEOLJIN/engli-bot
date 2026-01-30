@@ -9,7 +9,8 @@
     "test": "ts-node tests/executor.test.ts",
     "test:terminal": "ts-node tests/executor.test.ts",
     "test:browser": "ts-node tests/automation.test.ts",
-    "start:bot": "ts-node src/slack/bot.ts"
+    "start:bot": "ts-node src/slack/bot.ts",
+    "setup": "node scripts/setup.js"
   },
   "keywords": [],
   "author": "",
