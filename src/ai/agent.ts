@@ -16,13 +16,25 @@ interface ClaudeMessage {
   session_id?: string;
   result?: string;
   subtype?: string;
-  tool?: string;
   content?: Array<{ type: string; text?: string }>;
   [key: string]: any;
 }
 
 // 진행 상황 콜백 타입
 export type ProgressCallback = (status: string) => void;
+
+// 허용할 안전한 도구 목록
+const ALLOWED_TOOLS = [
+  "Read",
+  "Write",
+  "Edit",
+  "Glob",
+  "Grep",
+  "WebSearch",
+  "WebFetch",
+  "Task",
+  "NotebookEdit",
+].join(",");
 
 // 에이전트 실행
 export async function runAgent(
@@ -40,6 +52,8 @@ export async function runAgent(
       "stream-json",
       "--permission-mode",
       "acceptEdits",
+      "--allowedTools",
+      ALLOWED_TOOLS,
     ];
 
     // 세션 이어받기
