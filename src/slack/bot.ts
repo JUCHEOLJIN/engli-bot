@@ -48,6 +48,24 @@ async function updateMessage(
   }
 }
 
+// 새 메시지 전송 헬퍼
+async function postMessage(channel: string, text: string): Promise<void> {
+  try {
+    await app.client.chat.postMessage({
+      token: SLACK_BOT_TOKEN,
+      channel,
+      text,
+    });
+  } catch {
+    // 전송 실패 무시
+  }
+}
+
+// diff인지 확인
+function isDiff(status: string): boolean {
+  return status.includes("```diff");
+}
+
 // @멘션 핸들러
 app.event("app_mention", async ({ event, say }) => {
   if (event.user !== MY_SLACK_USER_ID) {
@@ -83,7 +101,13 @@ app.event("app_mention", async ({ event, say }) => {
     const response = await runAgent(userMessage, event.channel, async (status) => {
       if (status !== lastStatus) {
         lastStatus = status;
-        await updateMessage(event.channel, msgTs, `${status}\n\n> ${userMessage}`);
+
+        // diff는 별도 메시지로 전송
+        if (isDiff(status)) {
+          await postMessage(event.channel, status);
+        } else {
+          await updateMessage(event.channel, msgTs, `${status}\n\n> ${userMessage}`);
+        }
       }
     });
 
@@ -118,7 +142,13 @@ app.event("message", async ({ event, say }) => {
     const response = await runAgent(userMessage, event.channel, async (status) => {
       if (status !== lastStatus) {
         lastStatus = status;
-        await updateMessage(event.channel, msgTs, `${status}\n\n> ${userMessage}`);
+
+        // diff는 별도 메시지로 전송
+        if (isDiff(status)) {
+          await postMessage(event.channel, status);
+        } else {
+          await updateMessage(event.channel, msgTs, `${status}\n\n> ${userMessage}`);
+        }
       }
     });
 

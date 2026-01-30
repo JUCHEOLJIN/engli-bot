@@ -11,30 +11,33 @@ export function clearConversation(conversationId: string): void {
   sessions.delete(conversationId);
 }
 
+interface StructuredPatch {
+  oldStart: number;
+  oldLines: number;
+  newStart: number;
+  newLines: number;
+  lines: string[];
+}
+
+interface ToolUseResult {
+  filePath?: string;
+  oldString?: string;
+  newString?: string;
+  structuredPatch?: StructuredPatch[];
+}
+
 interface ClaudeMessage {
   type: string;
   session_id?: string;
   result?: string;
   subtype?: string;
+  tool_use_result?: ToolUseResult;
   content?: Array<{ type: string; text?: string }>;
   [key: string]: any;
 }
 
 // 진행 상황 콜백 타입
 export type ProgressCallback = (status: string) => void;
-
-// 허용할 안전한 도구 목록
-const ALLOWED_TOOLS = [
-  "Read",
-  "Write",
-  "Edit",
-  "Glob",
-  "Grep",
-  "WebSearch",
-  "WebFetch",
-  "Task",
-  "NotebookEdit",
-].join(",");
 
 // 에이전트 실행
 export async function runAgent(
@@ -52,8 +55,6 @@ export async function runAgent(
       "stream-json",
       "--permission-mode",
       "acceptEdits",
-      "--allowedTools",
-      ALLOWED_TOOLS,
     ];
 
     // 세션 이어받기
@@ -72,6 +73,11 @@ export async function runAgent(
     let result = "";
     let newSessionId: string | undefined;
     let buffer = "";
+    let stderrOutput = "";
+
+    claude.stderr.on("data", (data: Buffer) => {
+      stderrOutput += data.toString();
+    });
 
     claude.stdout.on("data", (data: Buffer) => {
       buffer += data.toString();
@@ -120,7 +126,8 @@ export async function runAgent(
       if (code === 0) {
         resolve(result || "작업을 완료했습니다.");
       } else {
-        reject(new Error(`Claude exited with code ${code}`));
+        const errorMsg = stderrOutput.trim() || `exit code ${code}`;
+        reject(new Error(`Claude 오류: ${errorMsg}`));
       }
     });
 
@@ -128,6 +135,21 @@ export async function runAgent(
       reject(new Error(`Claude 실행 실패: ${err.message}`));
     });
   });
+}
+
+// diff 포맷팅
+function formatDiff(filePath: string, patches: StructuredPatch[]): string {
+  const lines: string[] = [`📝 *${filePath}*`, "```diff"];
+
+  for (const patch of patches) {
+    lines.push(`@@ -${patch.oldStart},${patch.oldLines} +${patch.newStart},${patch.newLines} @@`);
+    for (const line of patch.lines) {
+      lines.push(line);
+    }
+  }
+
+  lines.push("```");
+  return lines.join("\n");
 }
 
 // 진행 상황 콜백
@@ -143,6 +165,17 @@ function logProgress(
     case "system":
       if (message.subtype === "init") {
         status = "🔄 세션 시작...";
+      }
+      break;
+
+    case "user":
+      // Edit 도구 결과에서 diff 추출
+      if (message.tool_use_result?.structuredPatch && message.tool_use_result?.filePath) {
+        const diff = formatDiff(
+          message.tool_use_result.filePath,
+          message.tool_use_result.structuredPatch,
+        );
+        status = diff;
       }
       break;
 

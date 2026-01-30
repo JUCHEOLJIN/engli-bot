@@ -1,22 +1,23 @@
 # Engli Bot
 
-Slack에서 내 PC를 제어하는 **개인용 AI 비서**입니다.
+Slack에서 사용하는 **개인용 AI 비서**입니다.
 
 ```
-@Engli Bot 파일 목록 보여줘
-@Engli Bot 구글 열어줘
-@Engli Bot 이 스레드 요약해줘 [URL]
+@Engli Bot package.json 파일 읽어줘
+@Engli Bot README에서 "설치" 부분 찾아줘
+@Engli Bot React 최신 트렌드 검색해줘
 ```
 
 ---
 
 ## 주요 기능
 
-| 기능              | 설명                                |
-| ----------------- | ----------------------------------- |
-| **터미널 명령**   | `ls`, `pwd` 등 안전한 명령어 실행   |
-| **브라우저 제어** | 웹페이지 열기, 스크린샷, 클릭, 입력 |
-| **Slack 연동**    | 스레드/채널 메시지 읽기, 요약       |
+| 기능              | 설명                                      |
+| ----------------- | ----------------------------------------- |
+| **파일 작업**     | 읽기, 쓰기, 편집, 검색                    |
+| **웹 검색**       | 실시간 웹 검색 및 페이지 내용 가져오기    |
+| **대화 기억**     | 채널/DM별 대화 맥락 유지                  |
+| **MCP 연동**      | Model Context Protocol 서버 확장 가능     |
 
 ---
 
@@ -113,27 +114,29 @@ https://api.slack.com/apps 에서 **Create New App** > **From scratch**
 
 ## 사용 예시
 
-### 터미널
+### 파일 작업
 
 ```
-@Engli Bot 현재 폴더 파일 보여줘
-@Engli Bot pwd
+@Engli Bot package.json 파일 읽어줘
+@Engli Bot src 폴더에서 "agent" 단어가 포함된 파일 찾아줘
+@Engli Bot README.md에서 "설치" 섹션 찾아줘
 ```
 
-### 브라우저
+### 웹 검색
 
 ```
-@Engli Bot 구글 열어줘
-@Engli Bot 스크린샷 찍어줘
-@Engli Bot 검색창에 "날씨" 입력해줘
+@Engli Bot TypeScript 5.0 새로운 기능 검색해줘
+@Engli Bot React 공식 문서에서 Hooks 설명 가져와줘
 ```
 
-### Slack
+### 대화 기억
 
 ```
-@Engli Bot 이 스레드 요약해줘 https://xxx.slack.com/archives/C.../p...
-@Engli Bot 채널 목록 보여줘
+@Engli Bot 아까 본 파일 다시 읽어줘
+@Engli Bot 우리가 논의한 내용 요약해줘
 ```
+
+DM으로도 동일하게 사용 가능합니다.
 
 ---
 
@@ -173,22 +176,54 @@ MY_SLACK_USER_ID=본인 Slack ID
 
 ---
 
+## 허용된 도구
+
+보안을 위해 다음 도구만 허용됩니다:
+
+| 도구         | 설명                        |
+| ------------ | --------------------------- |
+| `Read`       | 파일 읽기                   |
+| `Write`      | 파일 쓰기                   |
+| `Edit`       | 파일 편집                   |
+| `Glob`       | 파일 패턴 검색              |
+| `Grep`       | 파일 내용 검색              |
+| `WebSearch`  | 웹 검색                     |
+| `WebFetch`   | 웹 페이지 내용 가져오기     |
+| `Task`       | 복잡한 작업을 하위 에이전트에 위임 |
+
+`Bash` 등 위험한 도구는 제외되어 있습니다.
+
+---
+
+## MCP 서버 연동
+
+`mcp-servers.json` 파일에서 MCP 서버를 설정할 수 있습니다.
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed/dir"]
+    }
+  }
+}
+```
+
+---
+
 ## 프로젝트 구조
 
 ```
 engli-bot/
 ├── src/
 │   ├── ai/
-│   │   └── agent.ts        # Claude API + Tool Use
-│   ├── slack/
-│   │   ├── bot.ts          # Slack 봇 메인
-│   │   └── api.ts          # Slack API 호출
-│   ├── terminal/
-│   │   └── executor.ts     # 터미널 명령 실행
-│   └── browser/
-│       └── automation.ts   # 브라우저 자동화
+│   │   └── agent.ts        # Claude Code Agent 래퍼
+│   └── slack/
+│       └── bot.ts          # Slack 봇 메인
 ├── scripts/
 │   └── setup.js            # 초기 설정 마법사
+├── mcp-servers.json        # MCP 서버 설정
 ├── install.sh              # 설치 스크립트
 ├── package.json
 └── tsconfig.json
@@ -199,8 +234,8 @@ engli-bot/
 ## 기술 스택
 
 - **Runtime**: Node.js + TypeScript
-- **AI**: Claude API (Anthropic)
+- **AI**: Claude Code Agent SDK (@anthropic-ai/claude-code)
 - **Slack**: @slack/bolt (Socket Mode)
-- **Browser**: Playwriter
+- **MCP**: Model Context Protocol 지원
 
 ---
