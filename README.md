@@ -25,7 +25,7 @@ Slack에서 내 PC를 제어하는 **개인용 AI 비서**입니다.
 ### 방법 1: One-liner (권장)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/engli-bot/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/JUCHEOLJIN/engli-bot/main/install.sh | bash
 ```
 
 ### 방법 2: 직접 설치
