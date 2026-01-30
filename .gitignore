@@ -1,0 +1,30 @@
+# 환경 변수 (민감 정보!)
+.env
+.env.local
+.env.*.local
+
+# 의존성
+node_modules/
+
+# 빌드 결과물
+dist/
+
+# OS 파일
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# 로그
+*.log
+npm-debug.log*
+
+# 스크린샷 (테스트용)
+screenshots/
+*.png
+
+# 실행 파일 (pkg 빌드)
+release/
